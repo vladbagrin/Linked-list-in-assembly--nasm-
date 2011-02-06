@@ -68,14 +68,14 @@ main:
 
     mov ecx, 10000
 zzzZZZ:
-    push ecx            ; I don't know yet why or where ecx is changed, but if I don't save it, the loop breaks and becomes infinite
+    push ecx            ; I don't know why or where ecx is changed, but if I don't save it, the loop breaks and becomes infinite
     push dword 'Z'
     push prim
     call append
     pop ecx
     loop zzzZZZ
 
-    push dword [prim]
+    push dword [prim]   ; Send the list to printing to the stdout
     call print
 
     mov esp, ebp        ; Restore the stack
@@ -83,7 +83,7 @@ zzzZZZ:
     ret
 
 ; Procedure: append
-; Appends and element at the end of a linked list
+; Appends an element at the end of a linked list
 ; If the linked list is void, initialize the list
 ; Params (in order of pushing on the stack):
 ;           dword element - data to be added
