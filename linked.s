@@ -26,7 +26,7 @@ main:
 
     mov dword [prim], 0 ; Pointer is NULL initially - the list is void
 
-    push dword 'a'      ; Element to add tot he list
+    push dword 'a'      ; Element to add to the list
     push prim           ; Address of the first element in the list and pass it to the init function, through the stack
     call append         ; Call the init function
 
