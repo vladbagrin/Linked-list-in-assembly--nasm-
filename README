@@ -1,0 +1,1 @@
+Linked list implemented in assembly language. It is assembled using the nasm compiler and Intel syntax. Uses Linux standard C library functions.
