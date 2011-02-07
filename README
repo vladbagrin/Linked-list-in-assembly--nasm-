@@ -1,3 +1,8 @@
+linked.s:
 Linked list implemented in assembly language.
 It is assembled using the nasm compiler and Intel syntax.
 Uses Linux standard C library functions.
+The list can also act as a tail - added pop procedure.
+
+asm.sh:
+Script to assemble a file using nasm and link it using gcc.
