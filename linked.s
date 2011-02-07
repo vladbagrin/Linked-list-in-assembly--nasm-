@@ -1,4 +1,5 @@
     extern malloc
+    extern free
     extern putchar
     extern puts
 
@@ -10,9 +11,12 @@ section .data
     endstruc
     len: equ $ - size_i  ; Size of the data type
 
-    nullMes:    db  'Null pointer - the list is void', 0
+    nullMes:    db  'Null pointer - the list is empty', 0
     addMes:     db  'Adding a new element', 0
     printMes:   db  'Printing a linked list:', 0
+    cleanMes:   db  'Cleaning an element', 0
+    doneCleanMes:   db  'Ready for cleaning...', 0
+    emptyListMes:    db  '- empty list -', 0
 
 section .bss
     prim:   resd  1
@@ -24,7 +28,7 @@ main:
     push ebp            ; Standard procedure entry
     mov ebp, esp
 
-    mov dword [prim], 0 ; Pointer is NULL initially - the list is void
+    mov dword [prim], 0 ; Pointer is NULL initially - the list is empty
 
     push dword 'a'      ; Element to add to the list
     push prim           ; Address of the first element in the list and pass it to the init function, through the stack
@@ -37,36 +41,8 @@ main:
     push dword 'c'
     push prim
     call append
-    
-    push dword 'c'
-    push prim
-    call append
 
-    push dword 'c'
-    push prim
-    call append
-
-    push dword 'c'
-    push prim
-    call append
-
-    push dword 'c'
-    push prim
-    call append
-
-    push dword 'c'
-    push prim
-    call append
-
-    push dword 'c'
-    push prim
-    call append
-
-    push dword 'c'
-    push prim
-    call append
-
-    mov ecx, 10000
+    mov ecx, 1
 zzzZZZ:
     push ecx            ; I don't know why or where ecx is changed, but if I don't save it, the loop breaks and becomes infinite
     push dword 'Z'
@@ -78,13 +54,46 @@ zzzZZZ:
     push dword [prim]   ; Send the list to printing to the stdout
     call print
 
+    push prim           ; Remove the first element: a
+    call pop
+
+    push dword [prim]
+    call print
+
+    push prim           ; Remove the first element: b
+    call pop
+
+    push dword [prim]
+    call print
+
+    push prim           ; Remove the first element: c
+    call pop
+
+    push dword [prim]
+    call print
+    
+    push prim           ; Remove the first element: Z
+    call pop
+
+    push dword [prim]
+    call print
+
+    push prim           ; Remove the first element: nil
+    call pop
+
+    push dword [prim]
+    call print
+
+    push dword [prim]   ; Deallocate memory
+    call cleanup
+
     mov esp, ebp        ; Restore the stack
     pop ebp
     ret
 
 ; Procedure: append
 ; Appends an element at the end of a linked list
-; If the linked list is void, initialize the list
+; If the linked list is empty, initialize the list
 ; Params (in order of pushing on the stack):
 ;           dword element - data to be added
 ;           dword prim    - first element in the list
@@ -160,7 +169,7 @@ print:
     push ebx
     mov ebx, [ebp + 8]  ; Address of the first element
     cmp ebx, 0
-    je done
+    je emptyList
 
     push eax
     push printMes       ; Print message "Printing a linked list"
@@ -180,6 +189,98 @@ next_char:
 
 done:
     pop ebx
+    mov esp, ebp
+    pop ebp
+    ret 4
+
+emptyList:
+    pusha
+    push emptyListMes
+    call puts
+    add esp, 4
+    popa
+    jmp done
+
+; Procedure: cleanup
+; Deallocate the memory used by a linked list
+; This function is recursive
+; Params:
+;       - address of the list node to free ([ebp + 8])
+; Return: none
+
+cleanup:
+    push ebp                    ; Save the stack pointer
+    mov ebp, esp
+
+    push eax                    ; Save the working registers
+
+    mov eax, [ebp + 8]          ; Retrieve the parameters
+    cmp eax, 0                  ; If the address is NULL, then it is past the end of the list
+    je doneCleaning             ; No more recursive calls; print an appropriate message
+
+    push dword [eax + next]     ; Push the address of the next element as parameter for the next call to this procedure
+    call cleanup
+
+    pusha                       ; Print a message that cleaning is underway
+    push cleanMes               
+    call puts                   
+    add esp, 4
+    popa
+
+    push eax                    ; Push the address of the current element as parameter for the free function
+    call free
+    add esp, 4                  ; Aaargh I hate these unpredictable stdlib procedures!
+
+doneAll:                        ; Prepare to exit the procedure
+    pop eax
+    mov esp, ebp
+    pop ebp
+    ret 4
+
+doneCleaning:                   ; Print a message that the last element was passed to the procedure
+    pusha
+    push doneCleanMes
+    call puts
+    add esp, 4
+    popa
+    jmp doneAll
+
+; Procedure: pop
+; Retrieves the first element in the list in eax and deletes it.
+; The list acts like a tail
+; Params:
+;           - address to the address of the first element
+; Return: eax = the element removed
+
+pop:
+    push ebp
+    mov ebp, esp
+
+    push ebx
+    push edx
+    push ecx
+
+    mov ebx, [ebp + 8]          ; Address of the address of the first element
+    mov eax, [ebx]              ; Address of the first element
+    cmp eax, 0
+    je donePop                  ; Don't do anything if the list is empty
+    mov edx, eax
+    mov eax, [eax + info]       ; The information stored in the element
+
+    mov ecx, [edx + next]
+    mov [ebx], ecx              ; The address to the first element changed to point to the next one
+
+    pusha                       ; This is suboptimal but I don't know what registers are messed up by free (I cannot believe they coded it this way)
+    push edx                    ; Free the allocated resources
+    call free
+    add esp, 4
+    popa
+
+donePop:
+    pop ecx
+    pop edx                     ; Done - restore the registers and return to the calling procedure
+    pop ebx         
+
     mov esp, ebp
     pop ebp
     ret 4
